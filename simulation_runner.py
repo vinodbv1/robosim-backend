@@ -70,7 +70,7 @@ class SimulationRunner:
                 self.env.render()
                 
                 # Read the saved frame from ir-sim
-                frame_path = os.path.join(self.frame_dir, f'simulation_config_{step:04d}.png')
+                frame_path = os.path.join(self.frame_dir, f'simulation_config_{step+1:04d}.png')
                 
                 # Wait a bit for file to be written
                 time.sleep(0.02)
@@ -80,6 +80,7 @@ class SimulationRunner:
                     with open(frame_path, 'rb') as f:
                         frame_bytes = f.read()
                     yield {'frame': frame_bytes, 'status': 'running'}
+                    print("Simuilation running")
                 else:
                     print(f"Warning: Frame not found at {frame_path}")
                 
@@ -116,10 +117,12 @@ class SimulationRunner:
     
     def cleanup(self):
         """Clean up resources"""
-        if self.env:
-            self.env.end()
-        plt.close('all')
-        
+        # if self.env:
+        #     self.env.end()
+        # plt.close('all')
+
+    def cleanup_frames(self):
+        print("Cleaning up frames............................")
         # Clean up frame files
         if os.path.exists(self.frame_dir):
             for file in os.listdir(self.frame_dir):

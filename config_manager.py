@@ -3,6 +3,23 @@ import os
 
 class ConfigManager:
     """Manages YAML configuration for robot simulation"""
+
+    global canvas_height
+    global canvas_width
+    global map_height
+    global map_width
+    global px_to_m
+
+    # Convert pixel coordinates to meters (assuming 800x600 pixel map = 8x6 meters)
+    px_to_m = 100  # 100 pixels = 1 meter
+    canvas_height = 1000
+    canvas_width = 1000
+
+    map_height = canvas_height / px_to_m # 6
+    map_width= canvas_width / px_to_m # 8
+    
+
+
     
     def __init__(self, config_path):
         self.config_path = config_path
@@ -20,8 +37,8 @@ class ConfigManager:
         """Create default configuration structure for ir-sim"""
         return {
             'world': {
-                'height': 6,  # world height in meters
-                'width': 8,   # world width in meters
+                'height': map_height,  # world height in meters
+                'width': map_width,   # world width in meters
                 'step_time': 0.1,  # 10Hz calculate each step
                 'sample_time': 0.1,  # 10Hz for render and data extraction
                 'offset': [0, 0],  # offset of the world on x and y
@@ -53,13 +70,10 @@ class ConfigManager:
         """
         config = self.load_config()
         
-        # Convert pixel coordinates to meters (assuming 800x600 pixel map = 8x6 meters)
-        px_to_m = 100  # 100 pixels = 1 meter
-        
         # Update world settings with save_ani to save frames
         config['world'] = {
-            'height': 6,  # 600 pixels = 6 meters
-            'width': 8,   # 800 pixels = 8 meters
+            'height': map_height,  # 600 pixels = 6 meters
+            'width': map_width,   # 800 pixels = 8 meters
             'step_time': 0.1,
             'sample_time': 0.1,
             'offset': [0, 0],
@@ -73,17 +87,17 @@ class ConfigManager:
         for i in range(robot_count):
             # Convert pixel coordinates to meters (invert Y since canvas Y is top-down)
             start_x = float(robot_position['x']) / px_to_m
-            start_y = (600 - float(robot_position['y'])) / px_to_m  # Invert Y axis
+            start_y = (canvas_height - float(robot_position['y'])) / px_to_m  # Invert Y axis
             
             # For multiple survivors, use first as goal (ir-sim supports single goal per robot)
             # To visit all survivors, we'd need path planning or behavior modification
             goal_x = float(survivor_positions[0]['x']) / px_to_m if survivor_positions else start_x
-            goal_y = (600 - float(survivor_positions[0]['y'])) / px_to_m if survivor_positions else start_y  # Invert Y axis
+            goal_y = (canvas_height - float(survivor_positions[0]['y'])) / px_to_m if survivor_positions else start_y  # Invert Y axis
             
             robot = {
                 'kinematics': {'name': 'diff'},  # differential drive
                 'shape': {'name': 'circle', 'radius': 0.15},  # 15 pixels = 0.15 meters
-                'state': [start_x, start_y, 0],  # [x, y, theta]
+                'state': [start_x+i*0.1, start_y+i*0.1, 0],  # [x, y, theta]
                 'goal': [goal_x, goal_y, 0],  # [x, y, theta]
                 'behavior': {'name': 'dash'},  # move directly toward goal
                 'color': self._get_robot_color(i)
@@ -97,7 +111,7 @@ class ConfigManager:
         for i, pos in enumerate(survivor_positions):
             obstacle = {
                 'shape': {'name': 'circle', 'radius': 0.1},  # 10 pixels = 0.1 meters
-                'state': [float(pos['x']) / px_to_m, (600 - float(pos['y'])) / px_to_m, 0]  # Invert Y axis
+                'state': [float(pos['x']) / px_to_m, (canvas_height - float(pos['y'])) / px_to_m, 0]  # Invert Y axis
             }
             obstacles.append(obstacle)
         

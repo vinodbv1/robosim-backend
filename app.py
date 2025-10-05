@@ -58,13 +58,15 @@ def start_simulation():
     # Initialize simulation runner
     map_path = os.path.join(MAPS_DIR, map_name)
     simulation_runner = SimulationRunner(CONFIG_FILE, map_path)
+    simulation_runner.cleanup_frames()
     
     def generate_frames():
         """Generator for Server-Sent Events stream"""
         try:
             for frame_data in simulation_runner.run():
+                print("Frame status........", frame_data['status'])
                 if frame_data['status'] == 'completed':
-                    yield f"data: {json.dumps({'status': 'completed'})}\n\n"
+                    yield f"data: {json.dumps({'frame': image_base64, 'status': 'completed'})}\n\n"
                     break
                 elif frame_data['status'] == 'error':
                     yield f"data: {json.dumps({'error': frame_data.get('message', 'Unknown error')})}\n\n"
@@ -78,9 +80,9 @@ def start_simulation():
         except Exception as e:
             print(f"Error in simulation: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
-        finally:
-            if simulation_runner:
-                simulation_runner.cleanup()
+        # finally:
+        #     if simulation_runner:
+        #         simulation_runner.cleanup()
     
     return Response(generate_frames(), mimetype='text/event-stream')
 
@@ -105,6 +107,7 @@ def stop_simulation():
     if simulation_runner:
         simulation_runner.stop()
         simulation_runner.cleanup()
+        # simulation_runner.cleanup_frames()
         simulation_runner = None
         return jsonify({'status': 'stopped'})
     
