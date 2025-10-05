@@ -123,4 +123,5 @@ if __name__ == '__main__':
     print("Server running on http://localhost:5000")
     print("=" * 50)
     
-    app.run(debug=True, port=5000, threaded=True)
+    # app.run(debug=True, port=5000, threaded=True)
+    app.run(debug=True, threaded=True)
