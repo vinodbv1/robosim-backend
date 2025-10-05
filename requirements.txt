@@ -4,3 +4,4 @@ matplotlib
 numpy
 pyyaml
 pillow
+ir-sim
