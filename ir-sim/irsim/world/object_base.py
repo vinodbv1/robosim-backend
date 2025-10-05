@@ -1521,7 +1521,7 @@ class ObjectBase:
                     self.plot_patch_list.append(object_patch)
                     self.object_patch = object_patch
 
-                elif self.shape in ["polygon", "rectangle"]:
+                elif self.shape in ["polygon", "rectangle", "human"]:
                     object_patch = MplPolygon(
                         xy=vertices.T, color=self.color, linestyle=obj_linestyle
                     )

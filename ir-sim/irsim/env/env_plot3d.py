@@ -10,6 +10,9 @@ class EnvPlot3D(EnvPlot):
         self,
         world: Any,
         objects: Optional[list[Any]] = None,
+        saved_figure: Optional[dict[str, Any]] = None,
+        figure_pixels: Optional[list[int]] = None,
+        show_title: bool = True,
         **kwargs: Any,
     ) -> None:
         """Create a 3D plot for the environment.
@@ -24,12 +27,20 @@ class EnvPlot3D(EnvPlot):
         """
         if objects is None:
             objects = []
+        if saved_figure is None:
+            saved_figure = {}
+        if figure_pixels is None:
+            figure_pixels = [1180, 1080]
 
-        super().__init__(world, objects, **kwargs)
+        super().__init__(
+            world, objects, saved_figure, figure_pixels, show_title, **kwargs
+        )
 
         self.ax = self.fig.add_subplot(projection="3d")
-        self._init_plot(world, objects, **kwargs)
-        self.ax.set_zlim(world.z_range)
+        self.z_range = world.z_range
+
+        self.init_plot(world.grid_map, objects, **kwargs)
+        self.ax.set_zlim(self.z_range)
 
     def draw_points(
         self,

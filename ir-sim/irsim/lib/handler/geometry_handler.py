@@ -425,6 +425,9 @@ class GeometryFactory:
         if name == "polygon":
             return PolygonGeometry(name, **kwargs)
 
+        if name == "human":
+            return PolygonGeometry(name, **kwargs)
+
         if name == "rectangle":
             return RectangleGeometry(name, **kwargs)
 

@@ -3,6 +3,8 @@ from typing import Any
 import numpy as np
 
 from irsim.world.sensors.lidar2d import Lidar2D
+from irsim.world.sensors.RGBCam import RGBCam
+from irsim.world.sensors.IRCam import IRCam
 
 
 class SensorFactory:
@@ -24,4 +26,8 @@ class SensorFactory:
 
         if sensor_type == "lidar2d":
             return Lidar2D(state, obj_id, **kwargs)
+        if sensor_type == "camera_rgb":
+            return RGBCam(state, obj_id, **kwargs)
+        if sensor_type == "camera_thermal":
+            return IRCam(state, obj_id, **kwargs)
         raise NotImplementedError(f"Sensor types {type} not implemented")

@@ -9,7 +9,7 @@ from __future__ import annotations
 import glob
 import os
 import shutil
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from math import cos, sin
 from typing import Any, Optional
 
@@ -27,42 +27,50 @@ class EnvPlot:
     EnvPlot class for visualizing the environment.
 
     Args:
-        world: The world object with ranges and a ``plot_parse`` dictionary that
-            configures plotting (e.g., saved_figure, figure_pixels, show_title,
-            no_axis, tight).
-        objects (list, optional): Initial objects to draw. Default is ``[]``.
-        kwargs: Plot overrides that update ``world.plot_parse`` at runtime
-            (e.g., ``saved_figure``, ``figure_pixels``, ``show_title``,
-            ``no_axis``, ``tight``).
+        world: The world object containing environment information including grid_map, x_range, y_range.
+        objects (list, optional): List of objects in the environment. Default is [].
+        saved_figure (dict, optional): Keyword arguments for saving the figure.
+            See https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.savefig.html for details.
+            Default is dict().
+        figure_pixels (list, optional): Width and height of the figure in pixels. Default is [1180, 1080].
+        show_title (bool, optional): Whether to show the title. Default is True.
+        kwargs: Additional options such as color_map, no_axis, and tight.
     """
 
     def __init__(
         self,
         world: Any,
         objects: Optional[list[Any]] = None,
+        saved_figure: Optional[dict[str, Any]] = None,
+        figure_pixels: Optional[Sequence[int]] = None,
+        show_title: bool = True,
         **kwargs: Any,
     ) -> None:
         """
         Initialize the EnvPlot instance.
 
         Sets up the matplotlib figure, configures plotting parameters,
-        and initializes the plot with world data and objects. Any provided
-        ``kwargs`` override values in ``world.plot_parse``.
+        and initializes the plot with world data and objects.
         """
+        # Store world and basic properties
+        if saved_figure is None:
+            saved_figure = {}
+        if figure_pixels is None:
+            figure_pixels = [1000, 800]
+        if objects is None:
+            objects = []
+        self.world = world
+        self.x_range = world.x_range
+        self.y_range = world.y_range
+        self.show_title = show_title
+        self.title = None
 
-        world.plot_parse.update(kwargs)
-
-        # default saved figure kwargs
+        # Configure figure saving options
         self.saved_figure_kwargs: dict[str, Any] = {
             "dpi": 100,
             "bbox_inches": "tight",
         }
-
-        self.saved_figure_kwargs.update(world.plot_parse.get("saved_figure", {}))
-        figure_pixels = world.plot_parse.get("figure_pixels", [1000, 800])
-
-        if objects is None:
-            objects = []
+        self.saved_figure_kwargs.update(saved_figure)
 
         # Create matplotlib figure and axes
         self.fig, self.ax = plt.subplots(
@@ -73,65 +81,62 @@ class EnvPlot:
             dpi=self.saved_figure_kwargs["dpi"],
         )
 
+        # Initialize plot settings and appearance
+        self.color_map: dict[str, str] = {
+            "robot": "g",
+            "obstacle": "k",
+            "landmark": "b",
+            "target": "pink",
+        }
+        self.color_map.update(kwargs.get("color_map", {}))
+
+        # Configure save options
+        self.saved_ani_kwargs: dict[str, Any] = {}
+
         # Initialize dynamic plotting lists
         self.dyna_line_list: list[Any] = []
         self.dyna_point_list: list[Any] = []
         self.dyna_quiver_list: list[Any] = []
 
         # Initialize the plot with world data
-        self._init_plot(world, objects, **kwargs)
+        self.init_plot(world.grid_map, objects, **kwargs)
 
-        # Initialize plot settings and appearance
-        # self.color_map: dict[str, str] = {
-        #     "robot": "g",
-        #     "obstacle": "k",
-        #     "landmark": "b",
-        #     "target": "pink",
-        # }
-        # self.color_map.update(kwargs.get("color_map", {}))
-
-    def _init_plot(
+    def init_plot(
         self,
-        world: Any,
+        grid_map: Optional[Any],
         objects: list[Any],
+        no_axis: bool = False,
+        tight: bool = True,
         **kwargs: Any,
     ) -> None:
         """
-        Initialize or re-initialize drawing on the existing figure/axes.
-
-        Safe to call when the world and objects change (e.g., YAML reload);
-        it reuses the current figure without creating a new window.
+        Initialize the plot with the given grid map and objects.
 
         Args:
-            world: World instance providing ranges and grid map.
-            objects (list): List of objects to initialize and draw.
-            **kwargs: Plot overrides merged into ``world.plot_parse``.
+            grid_map (optional): The grid map of the environment.
+            objects (list): List of objects to plot.
+            no_axis (bool, optional): Whether to show the axis. Default is False.
+            tight (bool, optional): Whether to show the axis tightly. Default is True.
         """
-
-        world.plot_parse.update(kwargs)
-        self.world = world
-        self.saved_ani_kwargs: dict[str, Any] = {}
-        self.title = world.plot_parse.get("title", None)
-        self.show_title = world.plot_parse.get("show_title", True)
-        self.saved_figure_kwargs.update(world.plot_parse.get("saved_figure", {}))
 
         if isinstance(self.ax, Axes3D):
             self.ax.set_box_aspect([1, 1, 1])
         else:
             self.ax.set_aspect("equal")
 
-        self.ax.set_xlim(world.x_range)
-        self.ax.set_ylim(world.y_range)
+        self.ax.set_xlim(self.x_range)
+        self.ax.set_ylim(self.y_range)
 
         self.ax.set_xlabel("x [m]")
         self.ax.set_ylabel("y [m]")
 
+        # self.draw_components("all", objects)
         self.init_objects_plot(objects)
-        self.draw_grid_map(world.grid_map)
+        self.draw_grid_map(grid_map)
 
-        if world.plot_parse.get("no_axis", False):
+        if no_axis:
             plt.axis("off")
-        if world.plot_parse.get("tight", True):
+        if tight:
             self.fig.tight_layout()
 
     def step(
@@ -173,7 +178,7 @@ class EnvPlot:
         self, mode: str = "dynamic", objects: Optional[list[Any]] = None, **kwargs: Any
     ) -> None:
         """
-        Update the plot for the objects by transform based on the object's original geometry.
+        Update the plot for the objects.
         """
         if objects is None:
             objects = []
@@ -190,7 +195,7 @@ class EnvPlot:
         self, mode: str = "all", objects: Optional[list[Any]] = None, **kwargs: Any
     ) -> None:
         """
-        Draw the components in the environment with global axis.
+        Draw the components in the environment.
 
         Args:
             mode (str): 'static', 'dynamic', or 'all' to specify which objects to draw.
@@ -451,10 +456,7 @@ class EnvPlot:
                 See https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.savefig.html for details.
         """
 
-        print("Trying to save.....................................")
         fp = pm.ani_buffer_path if save_gif else pm.fig_path
-
-        print(f"Saving figure {file_name} to {fp} .....................................", {pm.ani_buffer_path}, {pm.fig_path})
 
         if not os.path.exists(fp):
             os.makedirs(fp)
@@ -462,7 +464,7 @@ class EnvPlot:
         self.saved_figure_kwargs.update(kwargs)
 
         if include_index or save_gif:
-            order = str(world_param.count).zfill(4)
+            order = str(world_param.count).zfill(3)
             full_name = fp + "/" + file_name + "_" + order + "." + file_format
         else:
             full_name = fp + "/" + file_name + "." + file_format
@@ -533,14 +535,6 @@ class EnvPlot:
     @property
     def logger(self):
         return env_param.logger
-
-    @property
-    def x_range(self):
-        return self.world.x_range
-
-    @property
-    def y_range(self):
-        return self.world.y_range
 
 
 def linewidth_from_data_units(

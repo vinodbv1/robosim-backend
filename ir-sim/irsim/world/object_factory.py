@@ -125,6 +125,8 @@ class ObjectFactory:
                 object_list.append(self.create_robot(**obj_dict))
             elif obj_type == "obstacle":
                 object_list.append(self.create_obstacle(**obj_dict))
+            elif obj_type == "human":
+                object_list.append(self.create_human(**obj_dict))
 
         return object_list
 
@@ -183,6 +185,21 @@ class ObjectFactory:
         if kinematics_name == "static" or kinematics_name is None:
             return ObjectStatic(kinematics=kinematics, role="obstacle", **kwargs)
         raise NotImplementedError(f"Robot kinematics {kinematics_name} not implemented")
+    
+    def create_human(
+        self, **kwargs: Any
+    ) -> Any:
+        """
+        Create static human
+
+        Args:
+            kinematics (dict): Kinematics configuration.
+            **kwargs: Additional parameters for robot creation.
+
+        Returns:
+            Obstacle: An instance of an obstacle.
+        """
+        return ObjectStatic(kinematics={}, role="polygon", **kwargs)
 
     def generate_state_list(
         self,
