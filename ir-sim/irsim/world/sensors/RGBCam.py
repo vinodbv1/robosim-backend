@@ -16,7 +16,6 @@ from irsim.util.util import (
     transform_point_with_state,
 )
 
-
 class RGBCam:
     """
     Simulates a RGB camera sendor detecting a survivor
