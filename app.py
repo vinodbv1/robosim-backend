@@ -17,6 +17,10 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config', 'simulation_conf
 config_manager = ConfigManager(CONFIG_FILE)
 simulation_runner = None
 
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
 @app.route('/api/get-map', methods=['GET'])
 def get_map():
     """Retrieve a map image by name"""
